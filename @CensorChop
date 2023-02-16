@@ -1,0 +1,51 @@
+#!/bin/tcsh
+
+set file     = $argv[1]
+set file1D   = $argv[2]
+set file_out = $argv[3]
+
+set NT = `wc -l < $file1D`
+@ NT1 = $NT - 1 
+
+#--- Create index list ---
+set LL = ""
+set last_val = ""
+set first_valid_found = 0
+set indx = 0
+set lindx = 0
+foreach val (`cat $file1D`)
+   #echo "indx: $indx (lindx: $lindx)"
+   if ($last_val == "") then
+      if ($val == 1) then
+	 set LL = "$indx-"
+	 set need_end = 1
+	 set first_valid_found = 1
+      endif
+   else
+      set ival = `ccalc -form int -expr "$val"`
+      if ($ival > $last_val) then
+         if ($first_valid_found == 0) then
+	    set LL = "$indx-"
+	    set first_valid_found  = 1
+	    set need_end = 1
+	 else
+	    set LL = "$LL,$indx-"
+	    set need_end = 1
+	 endif
+      else if ($ival < $last_val) then
+         set LL = ${LL}${lindx}
+	 set need_end = 0
+      endif
+      if ($indx == $NT1) then
+         if ($need_end == "1") then
+	    set LL = ${LL}${indx}
+	 endif
+      endif
+   endif
+   set last_val = $val
+   set lindx = $indx
+   @ indx ++
+end #val
+echo "sub-brick selector string: $LL"
+
+3dcalc -a $file'['$LL']' -expr "a" -prefix $file_out
